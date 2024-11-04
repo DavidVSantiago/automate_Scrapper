@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "fs": "^0.0.1-security",
+    "got": "^14.4.2",
+    "hpagent": "^1.2.0",
+    "https": "^1.0.0",
+    "puppeteer": "^23.5.0",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.6"
+  }
+}
