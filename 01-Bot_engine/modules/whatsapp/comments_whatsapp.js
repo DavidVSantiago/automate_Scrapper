@@ -20,7 +20,7 @@ class CommentsWhatsApp{
 
     async start(){
         this._numbersList = [];//await this.clearNumbers(await FileUtils.readFileAsArray('contact_list.txt'));// carrega a lista de numero de telefone
-        this._numbersList.push(5571987784119);
+        this._numbersList.push('5571987784119');
 
         this._client.on('qr', (qr) => {
             // Generate and scan this code with your phone
@@ -45,7 +45,7 @@ class CommentsWhatsApp{
     }
 
     async sendMessages(phoneNumber) {
-        await this.sendMessage(''+phoneNumber, "Test almir");
+        await this.sendMessage(phoneNumber, "Test almir");
     }
 
     // Função para enviar uma mensagem
