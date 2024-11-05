@@ -74,6 +74,14 @@ class FileUtils {
             return data;
         } catch (err) { return null }
     }
+    static async readFileAsArray(fileName) {
+        let data = await this.readFile(fileName);
+        if(!data) return null;
+        data = data.split('\n');
+        data.pop();
+        return data;
+    }
+    
 
     // #####################################################################################################################
     // Métodos de análise de arquivos

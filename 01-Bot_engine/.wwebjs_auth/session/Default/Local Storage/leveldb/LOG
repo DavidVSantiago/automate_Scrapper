@@ -1,0 +1,8 @@
+2024/11/04-22:19:24.754 3bfc Creating DB C:\Users\David Santiago\Documents\_CODES\automate_Scrapper\01-Bot_engine\.wwebjs_auth\session\Default\Local Storage\leveldb since it was missing.
+2024/11/04-22:19:24.766 3bfc Reusing MANIFEST C:\Users\David Santiago\Documents\_CODES\automate_Scrapper\01-Bot_engine\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2024/11/04-22:21:23.490 3bfc Level-0 table #5: started
+2024/11/04-22:21:23.492 3bfc Level-0 table #5: 47500 bytes OK
+2024/11/04-22:21:23.497 3bfc Delete type=0 #3
+2024/11/04-22:26:36.103 ee8 Level-0 table #7: started
+2024/11/04-22:26:36.112 ee8 Level-0 table #7: 55052 bytes OK
+2024/11/04-22:26:36.116 ee8 Delete type=0 #4
