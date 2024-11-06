@@ -1,44 +1,38 @@
-const axios = require('axios');
-const Utils = require('./utils/utils');
 const FileUtils = require('./utils/file_utils');
-const path = require('path');
-const sharp = require('sharp');
 const puppeteer = require('puppeteer');
-const { log } = require('console');
-const fs = require('fs').promises;
 
-class DownloadAndConvertImages{
+class ExtractContents{
     constructor(categoria){
-        this._categoria = categoria
+        this._categoria = categoria;
         this._linksListName = `extraction/links/${categoria}.txt`;
-        this._imgsDirName = `extraction/imgs/${categoria}/`;
-        this._configFileName = 'modules/download_and_convert_images.cfg';
+        this._contentsFileName = `extraction/contents/${categoria}.json`;
+        this._configFileName = 'modules/extract_contents.cfg';
     }
-
     async start(){
         await this.buildExtractionFiles(); // cria os arquivos e diretórios da extração
 
         let linksList = await FileUtils.readFileAsArray(this._linksListName); // obtém a lista de links
 
-        /** Loop de navegação nas páginas de extração dos dados */
-        console.log(`   LOG-> INICIANDO O PROCESSO DE EXTRAÇÃO DOS LINKS...`);
-        const actualLink = await this.getActualLink();
-        const lastLink = await this.getLastLink();
-        for(let i=actualLink; i<=lastLink; i++){ // navega em cada um dos links
-            console.log(`   LOG-> extraindo as imagens da página ${i} para a categoria: ${this._categoria}...`);
-            const link = linksList[i-1]; // obtém o link de cada página, a partir da lista de links
-            const imgLinkList = await this.extractImageLinks(link); // faz o scrapping e extrai os links das imagens de cada página
-            await this.downloadImages(imgLinkList); // envia a lista de links das imagens e faz o download de cada uma delas
-            await this.addLinkNumber(); // incrementa o marcador de link atual no arquivo de configuração
-        }
+         /** Loop de navegação nas páginas de extração dos dados */
+         console.log(`   LOG-> INICIANDO O PROCESSO DE EXTRAÇÃO DOS LINKS...`);
+         const actualLink = await this.getActualLink();
+         const lastLink = await this.getLastLink();
+         for(let i=actualLink; i<=lastLink; i++){ // navega em cada um dos links
+             console.log(`   LOG-> extraindo o conteúdo da página ${i} para a categoria: ${this._categoria}...`);
+             const link = linksList[i-1]; // obtém o link de cada página, a partir da lista de links
+             const jsonData = await this.extractContent(link); // faz o scrapping e extrai de todo o conteúdo da página
+        
+             await this.addLinkNumber(); // incrementa o marcador de link atual no arquivo de configuração
+         }
     }
 
     // #####################################################################################################################
     // Métodos do arquivo de configuração
     // #####################################################################################################################
-
+    
     async buildExtractionFiles() {
-        await FileUtils.makeDir(this._imgsDirName); // cria o diretório das imagens a serem baixadas
+        await FileUtils.makeDir("extraction/contents"); // cria o diretório dos arquivos dos conteudos
+        await FileUtils.makeFile('',this._contentsFileName); // cria o arquivo dos links
         await this.buildConfig(); // cria o arquivo de configuração do scrapping
     }
 
@@ -79,11 +73,11 @@ class DownloadAndConvertImages{
         return configFile['lastLink'];
     }
 
-    // #####################################################################################################################
+     // #####################################################################################################################
     // Métodos de EXTRAÇÃO DE DADOS
     // #####################################################################################################################
 
-    async extractImageLinks(url){
+    async extractContent(url){
         const browser = await puppeteer.launch(); // inicializa o navegador
         const page = await browser.newPage(); // cria uma nova página
         let success;
@@ -94,10 +88,20 @@ class DownloadAndConvertImages{
                 await page.goto(url); // carrega a página de resultados
                 await page.evaluate(() => {window.scrollBy(0, window.innerHeight);}); // simulando uma interação humana de scroll
 
-                linkList = await page.$$eval('main[role="main"] figure img', (anchors) => {
-                    return anchors.map(anchor => anchor.src);
-                });
-                
+                const mainElementHandle = await page.$('main[role="main"]');
+                const jsonObject =  await page.evaluate(mainElement => {
+                    let elements =  mainElement.children;
+                    let jsonData={title:'',content:'',thumb:'',}
+                    let data='';
+                    for (let i = 0; i < elements.length; i++) {
+                        element = elements[i];
+                        
+                        data+=element.tagName;
+                    };
+                    return data;
+                  }, mainElementHandle);
+                  console.log(jsonObject);
+                  
             } catch (error) {
                 success = false;
             }
@@ -107,32 +111,4 @@ class DownloadAndConvertImages{
         return linkList;
     }
 
-    async downloadImages(imgLinkList){
-
-        for(let i=0; i<imgLinkList.length; i++){ // percorre cada um dos links da imagem
-            const imgLink = imgLinkList[i]; // captura cada link
-
-            /** extrai o nome da imagem */
-            const regex = /\/([^/]+)\.\w+$/;
-            const match = imgLink.match(regex);
-            const imgName = match[1];
-            const imgExt = path.extname(imgLink);
-
-            /** baixa a imagem */
-            const response = await axios.get(imgLink, { responseType: 'arraybuffer' });
-    
-            /** converte a imagem para o formato .webp */
-            await sharp(response.data)
-            .webp({ quality: 50 })
-            .toBuffer()
-            .then((data) => {
-                response.data=data;
-            })
-            .catch(err => {console.error('Erro ao converter a imagem:', err);});
-            
-            /** salva a imagem no disco*/
-            await fs.writeFile(`${this._imgsDirName}/${imgName}${imgExt}`, response.data); // sobrescreve o conteúdo do arquivo
-        }
-    }
-
-}module.exports = DownloadAndConvertImages;
+}module.exports = ExtractContents;
