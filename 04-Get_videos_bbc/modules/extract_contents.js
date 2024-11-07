@@ -13,17 +13,18 @@ class ExtractContents{
 
         let linksList = await FileUtils.readFileAsArray(this._linksListName); // obtém a lista de links
 
-         /** Loop de navegação nas páginas de extração dos dados */
-         console.log(`   LOG-> INICIANDO O PROCESSO DE EXTRAÇÃO DOS LINKS...`);
-         const actualLink = await this.getActualLink();
-         const lastLink = await this.getLastLink();
-         for(let i=actualLink; i<=lastLink; i++){ // navega em cada um dos links
-             console.log(`   LOG-> extraindo o conteúdo da página ${i} para a categoria: ${this._categoria}...`);
-             const link = linksList[i-1]; // obtém o link de cada página, a partir da lista de links
-             const jsonData = await this.extractContent(link); // faz o scrapping e extrai de todo o conteúdo da página
-        
-             await this.addLinkNumber(); // incrementa o marcador de link atual no arquivo de configuração
-         }
+        /** Loop de navegação nas páginas de extração dos dados */
+        console.log(`   LOG-> INICIANDO O PROCESSO DE EXTRAÇÃO DOS LINKS...`);
+        const actualLink = await this.getActualLink();
+        const lastLink = await this.getLastLink();
+        for(let i=actualLink; i<=lastLink; i++){ // navega em cada um dos links
+            console.log(`   LOG-> extraindo o conteúdo da página ${i} para a categoria: ${this._categoria}...`);
+            const link = linksList[i-1]; // obtém o link de cada página, a partir da lista de links
+            const jsonData = await this.extractContent(link); // faz o scrapping e extrai de todo o conteúdo da página
+            console.log(jsonData);
+            
+            await this.addLinkNumber(); // incrementa o marcador de link atual no arquivo de configuração
+        }
     }
 
     // #####################################################################################################################
@@ -81,34 +82,41 @@ class ExtractContents{
         const browser = await puppeteer.launch(); // inicializa o navegador
         const page = await browser.newPage(); // cria uma nova página
         let success;
-        let linkList = [];
+        let jsonData = null;
         do{
             success = true;
             try {
                 await page.goto(url); // carrega a página de resultados
                 await page.evaluate(() => {window.scrollBy(0, window.innerHeight);}); // simulando uma interação humana de scroll
 
-                const mainElementHandle = await page.$('main[role="main"]');
-                const jsonObject =  await page.evaluate(mainElement => {
-                    let elements =  mainElement.children;
-                    let jsonData={title:'',content:'',thumb:'',}
-                    let data='';
-                    for (let i = 0; i < elements.length; i++) {
-                        element = elements[i];
-                        
-                        data+=element.tagName;
-                    };
-                    return data;
-                  }, mainElementHandle);
-                  console.log(jsonObject);
-                  
+                const divsHandler = await page.$$('main[role="main"] div');
+                const figuresHandler = await page.$$('main[role="main"] figure');
+                const title = await divsHandler[0].evaluate(div => div.textContent);
+                const thumb = await figuresHandler[0].evaluate(figure => figure.querySelector('img').src);
+                const allHandler = await page.$$('main[role="main"]>*');
+                let content = '';
+                let excerpt = await allHandler[3].evaluate(elem => elem.firstChild.textContent);
+                for(let i=2; i<allHandler.length; i++){ // percorre cada elemento do texto
+                    let elem = allHandler[i];
+                    let elemText = await elem.evaluate(elem => {
+                        if(elem.tagName.toLowerCase()==='div'){
+                            if(elem.firstChild.tagName.toLowerCase()==='h2') return `[h2]${elem.firstChild.textContent}[/h2]`;
+                            if(elem.firstChild.tagName.toLowerCase()==='p') return `[p]${elem.firstChild.textContent}[/p]`;
+                        }else if(elem.tagName.toLowerCase()==='figure'){
+                            return `[img]${elem.querySelector('img').src}[/img]`;
+                        }
+                        return null;
+                    });
+                    if(elemText!==null) content+=elemText+'\n';
+                }
+                jsonData={title,thumb,content,excerpt,category:this._categoria}; // cria o objeto json que representa o artigo
             } catch (error) {
                 success = false;
             }
         }while(success===false);
         await page.close();
         await browser.close();
-        return linkList;
+        return jsonData;
     }
 
 }module.exports = ExtractContents;
