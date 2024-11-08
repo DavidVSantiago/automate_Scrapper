@@ -52,8 +52,8 @@ class FileUtils {
         }
     }
 
-    /** salva um array de dados em um arquivo de texto (sobrescreve o conteúdo!) */
-    static async writeArrayToFile(array, fileName) {
+    /** adiciona um array de dados em um arquivo de texto */
+    static async appendArrayToFile(array, fileName) { 
         let data = await this.readFileAsArray(fileName);
         data = [...data, ...array]; // concatena ambos os arrays
         data = data.join('\n')+'\n'; // converte o array concatenado em texto
@@ -66,6 +66,15 @@ class FileUtils {
             data = JSON.stringify(data);
             return await this.writeToFile(data,fileName);
         } catch (err) { return false }
+    }
+
+    static async appendObjToJsonArrayFile(jsonObj, fileName) {
+        let data = await this.readJsonFile(fileName);
+        if (!Array.isArray(data)) console.error(`   LOG-> O arquivo '${fileName}' não é um array JSON!`, err);
+        if (data === null) return data;
+        data.push(jsonObj); // Adiciona o objeto no array JSON
+        return await this.writeJsonToFile(data, fileName); // salva o JSON array no arquivo
+
     }
     
     // #####################################################################################################################
@@ -89,18 +98,56 @@ class FileUtils {
         return data;
     }
 
-    /** lê arquivo com um objeto JSON */
-    static async readJsonFileAsObject(fileName) {
+    /** Lê um arquivo JSON e faz o seu parse (seja objeto ou array)*/
+    static async readJsonFile(fileName) {
         const data = await this.readFile(fileName);
         if (data === null) return data;
         const jsonObj = JSON.parse(data);
         return jsonObj;
     }
 
-    // #####################################################################################################################
+     // #####################################################################################################################
     // Métodos de análise de arquivos
     // #####################################################################################################################
 
+    
+    static async removeCorruptedData(filename,fieldsList){
+        const newDataList = [];
+        const dataList = await this.readJsonFileAsArray(filename);
+        console.log(`\n   LOG-> Iniciando o processo de remoção de dados corrompidos em ${dataList.length} registros...`);
+        let flag = false;
+        for(let i=0;i<dataList.length;i++){
+            flag = await this.checkEmptyData(dataList[i],fieldsList);
+            if(!flag) newDataList.push(dataList[i]); // se não estiver corrompido, coloca na nova lista
+        }
+        console.log(`\n   LOG-> Finalizando o processo de remoção de dados corrompidos...`);
+        let count = dataList.length-newDataList.length; // checa a quantidade de dados corrompidos
+        if(count!=0){ // se a quantidade de dados corrompidos for diferente de zero
+            console.log(`\n   LOG-> Houve um total de ${count} dados corrompidos.`);
+            await this.writeJsonToFile(newDataList,filename);
+            console.log(`\n   LOG-> Dados filtrados salvos em ${filename}.`);
+        } 
+        else console.log(`\n   LOG-> Não houve dados corrompidos.`);
+    }
 
+    /** Verifica se existe algum campo vazio de um objeto json */
+    static async checkEmptyData(data,fieldsList){
+        for(const field of fieldsList){
+            if(data[field]=='') return true;
+        }
+        return false;
+    }
+
+    static async reverseJsonArrayDataOrder(filename){
+        const newDataList = [];
+        const dataList = await this.readJsonFile(filename);
+        console.log(`\n   LOG-> Iniciando o processo de inversão da ordem dos dados em ${dataList.length} registros...`);
+        for(let i=dataList.length-1; i>=0; i--){ // percorre a lista de registros de trás para frente
+            newDataList.push(dataList[i]);
+        }
+        console.log(`\n   LOG-> Finalizando o processo de inversão da ordem dos dados...`);
+        await this.writeJsonToFile(newDataList,filename);
+        console.log(`\n   LOG-> Dados invertidos salvos em ${filename}.`);
+    }
 }
 module.exports = FileUtils;

@@ -1,5 +1,6 @@
 const FileUtils = require('./utils/file_utils');
 const puppeteer = require('puppeteer');
+const Utils = require('./utils/utils');
 
 class ExtractContents{
     constructor(categoria){
@@ -20,9 +21,10 @@ class ExtractContents{
         for(let i=actualLink; i<=lastLink; i++){ // navega em cada um dos links
             console.log(`   LOG-> extraindo o conteúdo da página ${i} para a categoria: ${this._categoria}...`);
             const link = linksList[i-1]; // obtém o link de cada página, a partir da lista de links
-            const jsonData = await this.extractContent(link); // faz o scrapping e extrai de todo o conteúdo da página
+            let jsonData = await this.extractContent(link); // faz o scrapping e extrai de todo o conteúdo da página
+            jsonData = await this.formatContent(jsonData); // formata o conteúdo extraído
+            await FileUtils.appendObjToJsonArrayFile(jsonData,this._contentsFileName);
             console.log(jsonData);
-            
             await this.addLinkNumber(); // incrementa o marcador de link atual no arquivo de configuração
         }
     }
@@ -33,14 +35,14 @@ class ExtractContents{
     
     async buildExtractionFiles() {
         await FileUtils.makeDir("extraction/contents"); // cria o diretório dos arquivos dos conteudos
-        await FileUtils.makeFile('',this._contentsFileName); // cria o arquivo dos links
+        await FileUtils.makeFile('[]',this._contentsFileName); // cria o arquivo dos links
         await this.buildConfig(); // cria o arquivo de configuração do scrapping
     }
 
     /** Esta função cria o arquivo de configuração, caso ainda não tenha sido criado */
     async buildConfig() {
         // verifica se o arquivo de configuração já foi criado antes  
-        let oldConfigFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let oldConfigFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         if(oldConfigFile!=null){
             console.log(`   LOG-> Arquivo de configuração '${this._configFileName}' já existe!`);
             return;
@@ -57,7 +59,7 @@ class ExtractContents{
     }
 
     async addLinkNumber(){
-        let configFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let configFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         configFile['link']++;
         let result = await FileUtils.writeJsonToFile(configFile,this._configFileName); // salva o arquivo de configuração
         if(result) console.log(`   LOG-> Arquivo de configuração '${this._configFileName}' atualizado com sucesso!`);
@@ -65,16 +67,16 @@ class ExtractContents{
     }
 
     async getActualLink(){
-        let configFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let configFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         return configFile['link'];
     }
 
     async getLastLink(){
-        let configFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let configFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         return configFile['lastLink'];
     }
 
-     // #####################################################################################################################
+    // #####################################################################################################################
     // Métodos de EXTRAÇÃO DE DADOS
     // #####################################################################################################################
 
@@ -118,5 +120,18 @@ class ExtractContents{
         await browser.close();
         return jsonData;
     }
+
+    // #####################################################################################################################
+    // Métodos de FORMATAÇÃO DE DADOS
+    // #####################################################################################################################
+
+    async formatContent(jsonData){
+        // altera o link para a imagem
+        jsonData['thumb'] = this._categoria+'/'+(jsonData['thumb'].match(/\/([^/]+)\.\w+$/))[1]+'.webp'; // substitui o nome da imagem com expressão regular
+        // modifica o titulo do artigo com IA
+        jsonData['title'] = await Utils.AiRewrite(jsonData['title'],3000);
+        return jsonData;
+    }
+
 
 }module.exports = ExtractContents;

@@ -9,8 +9,8 @@ const DownloadAndConvertImages = require('./modules/download_and_convert_images.
     // await extractLinks.start();
 
     /* baixa a lista de conteúdos de cada link obtido na etapa aterior */
-    const extractContents = new ExtractContents('tecnologia');
-    await extractContents.start();
+    // const extractContents = new ExtractContents('tecnologia');
+    // await extractContents.start();
 
     /* baixa as imagens da lista de links*/
     // const downloadAndConvertImages = new DownloadAndConvertImages('tecnologia');

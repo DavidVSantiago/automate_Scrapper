@@ -15,7 +15,7 @@ class DownloadAndConvertImages{
         this._configFileName = 'modules/download_and_convert_images.cfg';
     }
 
-    async start(){
+    async start(){    
         await this.buildExtractionFiles(); // cria os arquivos e diretórios da extração
 
         let linksList = await FileUtils.readFileAsArray(this._linksListName); // obtém a lista de links
@@ -45,7 +45,7 @@ class DownloadAndConvertImages{
     /** Esta função cria o arquivo de configuração, caso ainda não tenha sido criado */
     async buildConfig() {
         // verifica se o arquivo de configuração já foi criado antes  
-        let oldConfigFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let oldConfigFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         if(oldConfigFile!=null){
             console.log(`   LOG-> Arquivo de configuração '${this._configFileName}' já existe!`);
             return;
@@ -62,7 +62,7 @@ class DownloadAndConvertImages{
     }
 
     async addLinkNumber(){
-        let configFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let configFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         configFile['link']++;
         let result = await FileUtils.writeJsonToFile(configFile,this._configFileName); // salva o arquivo de configuração
         if(result) console.log(`   LOG-> Arquivo de configuração '${this._configFileName}' atualizado com sucesso!`);
@@ -70,12 +70,12 @@ class DownloadAndConvertImages{
     }
 
     async getActualLink(){
-        let configFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let configFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         return configFile['link'];
     }
 
     async getLastLink(){
-        let configFile = await FileUtils.readJsonFileAsObject(this._configFileName); // lê o arquivo de configuração
+        let configFile = await FileUtils.readJsonFile(this._configFileName); // lê o arquivo de configuração
         return configFile['lastLink'];
     }
 
